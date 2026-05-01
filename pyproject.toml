@@ -1,11 +1,15 @@
 [project]
 name = "ableton-mcp"
 version = "2.0.0"
-description = "AI-powered Ableton Live control with 80+ tools - supports Claude (MCP), Ollama, OpenAI, and more"
+description = "AI-powered Ableton Live control with 200+ tools - supports Claude (MCP), Ollama, OpenAI, and more. Adds REST API, Max for Live device, and full LOM coverage."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
+    {name = "Jason Poindexter", email = "jason@theft.studio"},
     {name = "Siddharth Ahuja", email = "ahujasid@gmail.com"}
+]
+maintainers = [
+    {name = "Jason Poindexter", email = "jason@theft.studio"}
 ]
 license = {text = "MIT"}
 keywords = [
