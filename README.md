@@ -341,6 +341,28 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - Original AbletonMCP by [Siddharth](https://x.com/sidahuj)
 - Extended with 200+ tools, REST API, M4L device, and AI helpers
 
+## Bug Fixes
+
+### Remote Script (`AbletonMCP_Remote_Script/__init__.py`)
+
+- **`load_instrument_or_effect` not routed to main thread** — command was defined but missing from the gating condition that dispatches to the main-thread handler, causing "Unknown command" errors.
+- **`load_browser_item` param name mismatch** — the REST API schema sends `uri` but the remote script expected `item_uri`. Now accepts both.
+- **`set_arrangement_loop` param name mismatch** — REST API sends `loop_start`/`loop_length`/`loop_on` but remote script expected `start`/`end`/`enabled`. Now accepts both naming conventions.
+- **`_find_browser_item_by_uri` didn't search `plugins`/`samples`/`packs`** — the URI search only covered 5 standard categories (instruments, sounds, drums, audio_effects, midi_effects), so VST/AU plugin URIs were never found.
+- **`None` categories caused search crash** — optional browser categories (plugins, samples, packs) could be `None`, causing attribute errors during URI search.
+
+### REST API Server (`MCP_Server/rest_api_server.py`)
+
+No functional bugs — only added new command definitions:
+- Added `load_item_to_master` and `load_device_preset_by_name` to `ALLOWED_COMMANDS` and `COMMAND_PARAM_SCHEMAS`.
+
+### New Commands
+
+| Command | Endpoint | Description |
+|---------|----------|-------------|
+| `load_item_to_master` | `/api/command` | Load a browser item (plugin/effect) onto the Master track by URI |
+| `load_device_preset_by_name` | `/api/command` | Load a preset onto a device by preset name (searches via hotswap browser children) |
+
 ## Disclaimer
 
 This is a third-party integration and not made by Ableton.
