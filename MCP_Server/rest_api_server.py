@@ -83,13 +83,13 @@ ALLOWED_COMMANDS = {
     "duplicate_scene", "set_scene_name", "get_scene_color", "set_scene_color", "select_scene",
     # Devices
     "get_device_parameters", "set_device_parameter", "toggle_device", "delete_device",
-    "get_device_by_name", "load_device_preset",
+    "get_device_by_name", "load_device_preset", "load_device_preset_by_name",
     # Rack chains
     "get_rack_chains", "select_rack_chain",
     # Browser
     "browse_path", "get_browser_children", "search_browser", "get_browser_tree",
     "get_browser_items_at_path", "load_browser_item", "load_instrument_or_effect",
-    "load_browser_item_to_return",
+    "load_item_to_master", "load_browser_item_to_return",
     # Return tracks
     "get_return_tracks", "get_return_track_info", "get_send_level", "set_send_level",
     "set_return_volume", "set_return_pan",
@@ -1977,12 +1977,14 @@ COMMAND_PARAM_SCHEMAS = {
     "get_browser_items_at_path": {"path": {"type": list, "max_length": 20}},
     "load_browser_item": {"track_index": {"type": int, "min": 0, "max": MAX_TRACK_INDEX}, "uri": {"type": str, "max_length": 2048}},
     "load_instrument_or_effect": {"track_index": {"type": int, "min": 0, "max": MAX_TRACK_INDEX}, "uri": {"type": str, "max_length": 2048}},
+    "load_item_to_master": {"uri": {"type": str, "max_length": 2048}},
     "load_browser_item_to_return": {"return_index": {"type": int, "min": 0, "max": MAX_SEND_INDEX}, "item_uri": {"type": str, "max_length": 2048}},
     # Rack chains
     "get_rack_chains": {"track_index": {"type": int, "min": 0, "max": MAX_TRACK_INDEX}, "device_index": {"type": int, "min": 0, "max": MAX_DEVICE_INDEX}},
     "select_rack_chain": {"track_index": {"type": int, "min": 0, "max": MAX_TRACK_INDEX}, "device_index": {"type": int, "min": 0, "max": MAX_DEVICE_INDEX}, "chain_index": {"type": int, "min": 0, "max": 127}},
     "get_device_by_name": {"track_index": {"type": int, "min": 0, "max": MAX_TRACK_INDEX}, "device_name": {"type": str, "max_length": 256}},
     "load_device_preset": {"track_index": {"type": int, "min": 0, "max": MAX_TRACK_INDEX}, "device_index": {"type": int, "min": 0, "max": MAX_DEVICE_INDEX}, "preset_uri": {"type": str, "max_length": 2048}},
+    "load_device_preset_by_name": {"track_index": {"type": int, "min": 0, "max": MAX_TRACK_INDEX}, "device_index": {"type": int, "min": 0, "max": MAX_DEVICE_INDEX}, "preset_name": {"type": str, "max_length": 256}},
 }
 
 

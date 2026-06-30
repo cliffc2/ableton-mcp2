@@ -568,7 +568,7 @@ class AbletonMCP(ControlSurface):
                                  "duplicate_clip", "set_clip_color", "set_clip_loop",
                                  "remove_notes", "remove_all_notes", "transpose_notes",
                                  "set_tempo", "fire_clip", "stop_clip",
-                                 "start_playback", "stop_playback", "load_browser_item",
+                                 "start_playback", "stop_playback", "load_browser_item", "load_instrument_or_effect", "load_item_to_master",
                                  "set_device_parameter", "toggle_device", "delete_device",
                                  "create_scene", "delete_scene", "fire_scene", "stop_scene",
                                  "set_scene_name", "set_scene_color", "duplicate_scene",
@@ -593,7 +593,7 @@ class AbletonMCP(ControlSurface):
                                  # Track monitoring
                                  "set_track_monitoring", "get_track_monitoring",
                                  # Device presets and rack chains
-                                 "get_device_by_name", "load_device_preset", "get_rack_chains", "select_rack_chain",
+                                 "get_device_by_name", "load_device_preset", "load_device_preset_by_name", "get_rack_chains", "select_rack_chain",
                                  # Groove pool
                                  "get_groove_pool", "apply_groove", "commit_groove",
                                  # Clip launch and follow actions
@@ -729,9 +729,12 @@ class AbletonMCP(ControlSurface):
                             track_index = params.get("track_index", 0)
                             uri = params.get("uri", "")
                             result = self._load_instrument_or_effect(track_index, uri)
+                        elif command_type == "load_item_to_master":
+                            uri = params.get("uri", "")
+                            result = self._load_item_to_master(uri)
                         elif command_type == "load_browser_item":
                             track_index = params.get("track_index", 0)
-                            item_uri = params.get("item_uri", "")
+                            item_uri = params.get("item_uri", "") or params.get("uri", "")
                             result = self._load_browser_item(track_index, item_uri)
                         elif command_type == "set_device_parameter":
                             track_index = params.get("track_index", 0)
@@ -867,9 +870,9 @@ class AbletonMCP(ControlSurface):
                             result = self._capture_midi()
                         # Arrangement control
                         elif command_type == "set_arrangement_loop":
-                            start = params.get("start", 0.0)
-                            end = params.get("end", 4.0)
-                            enabled = params.get("enabled", True)
+                            start = params.get("loop_start") if "loop_start" in params else params.get("start", 0.0)
+                            end = params.get("loop_length") if "loop_length" in params else params.get("end", 4.0)
+                            enabled = params.get("loop_on") if "loop_on" in params else params.get("enabled", True)
                             result = self._set_arrangement_loop(start, end, enabled)
                         elif command_type == "jump_to_time":
                             time = params.get("time", 0.0)
@@ -1020,6 +1023,11 @@ class AbletonMCP(ControlSurface):
                             device_index = params.get("device_index", 0)
                             preset_uri = params.get("preset_uri", "")
                             result = self._load_device_preset(track_index, device_index, preset_uri)
+                        elif command_type == "load_device_preset_by_name":
+                            track_index = params.get("track_index", 0)
+                            device_index = params.get("device_index", 0)
+                            preset_name = params.get("preset_name", "")
+                            result = self._load_device_preset_by_name(track_index, device_index, preset_name)
                         elif command_type == "get_rack_chains":
                             track_index = params.get("track_index", 0)
                             device_index = params.get("device_index", 0)
@@ -1732,6 +1740,22 @@ class AbletonMCP(ControlSurface):
             }
         except Exception as e:
             self.log_message("Error loading instrument/effect: " + str(e))
+            raise
+
+    def _load_item_to_master(self, item_uri):
+        """Load a browser item onto the Master track by its URI"""
+        try:
+            app = self.application()
+            item = self._find_browser_item_by_uri(app.browser, item_uri)
+            if not item:
+                raise ValueError("Browser item with URI '{0}' not found".format(item_uri))
+            master = self._song.master_track
+            self._song.view.selected_track = master
+            app.browser.load_item(item)
+            return {"loaded": True, "item_name": item.name, "track_name": master.name, "uri": item_uri}
+        except Exception as e:
+            self.log_message("Error loading item to master: {0}".format(str(e)))
+            self.log_message(traceback.format_exc())
             raise
 
     def _load_browser_item_to_return(self, return_index, item_uri):
@@ -4395,6 +4419,41 @@ class AbletonMCP(ControlSurface):
             self.log_message("Error getting device by name: " + str(e))
             raise
 
+    def _load_device_preset_by_name(self, track_index, device_index, preset_name):
+        """Load a preset onto a device by searching presets by name"""
+        try:
+            track = self._validate_track_index(track_index)
+            device = self._validate_device_index(track, device_index)
+            app = self.application()
+            browser = app.browser
+
+            old_target = browser.hotswap_target if hasattr(browser, 'hotswap_target') else None
+            if hasattr(browser, 'hotswap_target'):
+                browser.hotswap_target = device
+
+            preset_item = None
+            if hasattr(browser, 'children'):
+                for child in browser.children:
+                    if hasattr(child, 'name') and preset_name.lower() in child.name.lower():
+                        preset_item = child
+                        break
+
+            if not preset_item:
+                if old_target is not None and hasattr(browser, 'hotswap_target'):
+                    browser.hotswap_target = old_target
+                return {"error": "Preset '{0}' not found on device '{1}'".format(preset_name, device.name)}
+
+            browser.load_item(preset_item)
+            return {
+                "loaded": True,
+                "preset_name": preset_item.name,
+                "device_name": device.name
+            }
+        except Exception as e:
+            self.log_message("Error loading device preset by name: " + str(e))
+            self.log_message(traceback.format_exc())
+            raise
+
     def _load_device_preset(self, track_index, device_index, preset_uri):
         """Load a preset onto a device"""
         try:
@@ -4710,10 +4769,15 @@ class AbletonMCP(ControlSurface):
                     browser_or_item.sounds,
                     browser_or_item.drums,
                     browser_or_item.audio_effects,
-                    browser_or_item.midi_effects
+                    browser_or_item.midi_effects,
+                    browser_or_item.plugins if hasattr(browser_or_item, 'plugins') else None,
+                    browser_or_item.samples if hasattr(browser_or_item, 'samples') else None,
+                    browser_or_item.packs if hasattr(browser_or_item, 'packs') else None,
                 ]
                 
                 for category in categories:
+                    if category is None:
+                        continue
                     item = self._find_browser_item_by_uri(category, uri, max_depth, current_depth + 1)
                     if item:
                         return item
